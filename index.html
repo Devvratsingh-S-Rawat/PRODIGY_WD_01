@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DevStack — Build. Ship. Scale.</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg:        #0a0a0f;
+      --surface:   #111118;
+      --border:    #1e1e2e;
+      --text:      #e2e2f0;
+      --muted:     #6e6e8a;
+      --accent:    #7c6af7;
+      --accent2:   #3ecfcf;
+      --nav-h:     68px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 999;
+      height: var(--nav-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 6vw;
+      transition: background 0.35s ease, box-shadow 0.35s ease, border-bottom 0.35s ease;
+    }
+
+    nav.scrolled {
+      background: rgba(10, 10, 15, 0.92);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow: 0 1px 0 var(--border);
+    }
+
+    .nav-logo {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: var(--text);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-logo span {
+      color: var(--accent);
+    }
+
+    .nav-logo .cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1rem;
+      background: var(--accent2);
+      margin-left: 2px;
+      animation: blink 1s step-end infinite;
+    }
+
+    @keyframes blink { 50% { opacity: 0; } }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      display: block;
+      padding: 8px 16px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--muted);
+      text-decoration: none;
+      border-radius: 6px;
+      position: relative;
+      transition: color 0.2s ease, background 0.2s ease;
+      letter-spacing: 0.01em;
+    }
+
+    .nav-links a::after {
+      content: '';
+      position: absolute;
+      bottom: 4px; left: 50%;
+      width: 0; height: 2px;
+      background: var(--accent);
+      border-radius: 2px;
+      transform: translateX(-50%);
+      transition: width 0.25s ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--text);
+      background: rgba(124, 106, 247, 0.08);
+    }
+
+    .nav-links a:hover::after { width: calc(100% - 32px); }
+
+    .nav-cta {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--bg) !important;
+      background: var(--accent) !important;
+      padding: 8px 20px !important;
+      border-radius: 8px !important;
+      transition: opacity 0.2s ease, transform 0.2s ease !important;
+    }
+
+    .nav-cta::after { display: none !important; }
+
+    .nav-cta:hover {
+      opacity: 0.88 !important;
+      transform: translateY(-1px) !important;
+      background: var(--accent) !important;
+    }
+
+    
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      cursor: pointer;
+      padding: 4px;
+      background: none;
+      border: none;
+    }
+
+    .hamburger span {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: var(--text);
+      border-radius: 2px;
+      transition: all 0.3s ease;
+    }
+
+    .hamburger.open span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+    .hamburger.open span:nth-child(2) { opacity: 0; }
+    .hamburger.open span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
+
+    
+    .nav-mobile {
+      display: none;
+      position: fixed;
+      top: var(--nav-h); left: 0; right: 0;
+      background: rgba(10, 10, 15, 0.97);
+      backdrop-filter: blur(14px);
+      padding: 16px 6vw 24px;
+      border-bottom: 1px solid var(--border);
+      z-index: 998;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .nav-mobile.open { display: flex; }
+
+    .nav-mobile a {
+      display: block;
+      padding: 12px 0;
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--muted);
+      text-decoration: none;
+      border-bottom: 1px solid var(--border);
+      transition: color 0.2s;
+    }
+
+    .nav-mobile a:hover { color: var(--text); }
+    .nav-mobile a:last-child { border: none; }
+
+    
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      padding: calc(var(--nav-h) + 60px) 6vw 80px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 60px 60px;
+      opacity: 0.35;
+      mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, black 40%, transparent 100%);
+    }
+
+    .hero-glow {
+      position: absolute;
+      top: 20%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px; height: 400px;
+      background: radial-gradient(ellipse, rgba(124,106,247,0.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-content {
+      position: relative;
+      max-width: 760px;
+    }
+
+    .hero-eyebrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--accent2);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .hero-eyebrow::before {
+      content: '';
+      display: block;
+      width: 32px;
+      height: 1px;
+      background: var(--accent2);
+    }
+
+    h1 {
+      font-size: clamp(2.6rem, 6vw, 4.4rem);
+      font-weight: 700;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      margin-bottom: 24px;
+    }
+
+    h1 .hl {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: 1.1rem;
+      color: var(--muted);
+      max-width: 520px;
+      margin-bottom: 40px;
+      line-height: 1.7;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--accent);
+      color: #fff;
+      padding: 13px 28px;
+      border-radius: 10px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(124,106,247,0.4);
+    }
+
+    .btn-ghost {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 13px 28px;
+      border-radius: 10px;
+      font-size: 0.92rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--accent);
+      background: rgba(124,106,247,0.06);
+    }
+
+    .hero-stats {
+      display: flex;
+      gap: 40px;
+      margin-top: 64px;
+      padding-top: 40px;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .stat-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.9rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .stat-num span { color: var(--accent); }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 2px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    
+    section { padding: 100px 6vw; }
+
+    .section-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--accent2);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    h2 {
+      font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      margin-bottom: 16px;
+    }
+
+    .section-sub {
+      color: var(--muted);
+      max-width: 480px;
+      font-size: 1rem;
+      line-height: 1.7;
+      margin-bottom: 56px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px;
+      transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+      cursor: default;
+    }
+
+    .card:hover {
+      border-color: var(--accent);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(124,106,247,0.12);
+    }
+
+    .card-icon {
+      width: 44px; height: 44px;
+      background: rgba(124,106,247,0.12);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      margin-bottom: 18px;
+    }
+
+    .card h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+
+    .card p {
+      font-size: 0.88rem;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    
+    #how { background: var(--surface); }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 0;
+      position: relative;
+    }
+
+    .steps::before {
+      content: '';
+      position: absolute;
+      top: 28px; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+    }
+
+    .step {
+      padding: 0 28px 0 0;
+      position: relative;
+    }
+
+    .step-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--accent);
+      background: var(--surface);
+      display: inline-block;
+      padding: 6px 0;
+      margin-bottom: 20px;
+      letter-spacing: 0.08em;
+    }
+
+    .step h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .step p {
+      font-size: 0.87rem;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    
+    .stack-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 40px;
+    }
+
+    .pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      padding: 8px 16px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      transition: border-color 0.2s, color 0.2s, background 0.2s;
+      cursor: default;
+    }
+
+    .pill:hover {
+      border-color: var(--accent2);
+      color: var(--accent2);
+      background: rgba(62,207,207,0.06);
+    }
+
+    
+    .cta-band {
+      background: linear-gradient(135deg, rgba(124,106,247,0.12) 0%, rgba(62,207,207,0.08) 100%);
+      border: 1px solid rgba(124,106,247,0.2);
+      border-radius: 20px;
+      padding: 64px 48px;
+      text-align: center;
+      margin: 0 6vw 80px;
+    }
+
+    .cta-band h2 { margin-bottom: 16px; }
+
+    .cta-band p {
+      color: var(--muted);
+      margin-bottom: 36px;
+      font-size: 1rem;
+    }
+
+    
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 6vw;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    footer p {
+      font-size: 0.82rem;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    footer .foot-links {
+      display: flex;
+      gap: 24px;
+    }
+
+    footer a {
+      font-size: 0.82rem;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    footer a:hover { color: var(--accent); }
+
+    
+    .reveal {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: none;
+    }
+
+    
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .hamburger { display: flex; }
+
+      .hero-stats { gap: 24px; }
+      .steps::before { display: none; }
+      .step { padding: 0 0 28px; }
+      .cta-band { padding: 40px 24px; margin: 0 4vw 60px; }
+
+      footer { flex-direction: column; text-align: center; }
+      footer .foot-links { justify-content: center; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .reveal { opacity: 1; transform: none; transition: none; }
+      * { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  
+  <nav id="navbar">
+    <a href="#" class="nav-logo">
+      <span>&lt;</span>DevStack<span>/&gt;</span>
+      <span class="cursor"></span>
+    </a>
+
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#stack">Tech stack</a></li>
+      <li><a href="#contact" class="nav-cta">Get started</a></li>
+    </ul>
+
+    <button class="hamburger" id="hamburger" aria-label="Toggle menu">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <div class="nav-mobile" id="mobileNav">
+    <a href="#features" class="mob-link">Features</a>
+    <a href="#how" class="mob-link">How it works</a>
+    <a href="#stack" class="mob-link">Tech stack</a>
+    <a href="#contact" class="mob-link">Get started</a>
+  </div>
+
+  
+  <section class="hero" id="home">
+    <div class="hero-grid"></div>
+    <div class="hero-glow"></div>
+
+    <div class="hero-content">
+      <p class="hero-eyebrow">Developer infrastructure</p>
+
+      <h1>
+        Build fast.<br/>
+        Ship with confidence.<br/>
+        <span class="hl">Scale without limits.</span>
+      </h1>
+
+      <p class="hero-sub">
+        A modern development platform built for engineers who care about speed, reliability, and clean architecture. From local dev to global scale — in one stack.
+      </p>
+
+      <div class="hero-actions">
+        <a href="#features" class="btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          Explore features
+        </a>
+        <a href="#stack" class="btn-ghost">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          View tech stack
+        </a>
+      </div>
+
+      <div class="hero-stats">
+        <div>
+          <div class="stat-num">99<span>.9%</span></div>
+          <div class="stat-label">Uptime SLA</div>
+        </div>
+        <div>
+          <div class="stat-num">12<span>ms</span></div>
+          <div class="stat-label">Avg. latency</div>
+        </div>
+        <div>
+          <div class="stat-num">40<span>k+</span></div>
+          <div class="stat-label">Developers</div>
+        </div>
+        <div>
+          <div class="stat-num">8<span> regions</span></div>
+          <div class="stat-label">Global edge</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  
+  <section id="features">
+    <p class="section-label reveal">What you get</p>
+    <h2 class="reveal">Everything a dev needs.<br/>Nothing they don't.</h2>
+    <p class="section-sub reveal">Purpose-built tooling that gets out of your way and lets you focus on building great products.</p>
+
+    <div class="features-grid">
+      <div class="card reveal">
+        <div class="card-icon">⚡</div>
+        <h3>Instant deploys</h3>
+        <p>Push to main and your changes are live globally in under 30 seconds. No config files, no YAML hell.</p>
+      </div>
+      <div class="card reveal">
+        <div class="card-icon">🔒</div>
+        <h3>Zero-config TLS</h3>
+        <p>SSL certificates provisioned automatically for every domain. End-to-end encryption out of the box.</p>
+      </div>
+      <div class="card reveal">
+        <div class="card-icon">🔍</div>
+        <h3>Observability built in</h3>
+        <p>Logs, metrics, and traces unified in one view. Spot regressions the moment they happen.</p>
+      </div>
+      <div class="card reveal">
+        <div class="card-icon">🧩</div>
+        <h3>Composable APIs</h3>
+        <p>REST and GraphQL endpoints generated from your schema. Type-safe clients in TypeScript, Python, Go.</p>
+      </div>
+      <div class="card reveal">
+        <div class="card-icon">🌐</div>
+        <h3>Edge runtime</h3>
+        <p>Your code runs 40ms from every user on the planet. CDN, routing, and caching handled automatically.</p>
+      </div>
+      <div class="card reveal">
+        <div class="card-icon">🤝</div>
+        <h3>Team collaboration</h3>
+        <p>Preview environments for every PR. Review, test, and merge with full confidence before it hits production.</p>
+      </div>
+    </div>
+  </section>
+
+  
+  <section id="how">
+    <p class="section-label reveal">The workflow</p>
+    <h2 class="reveal">From idea to production<br/>in four steps.</h2>
+    <p class="section-sub reveal">No ops team required. No DevOps certification needed. Just a developer and an idea.</p>
+
+    <div class="steps">
+      <div class="step reveal">
+        <div class="step-num">01 / Connect</div>
+        <h3>Link your repo</h3>
+        <p>Connect GitHub, GitLab, or Bitbucket in one click. We detect your framework automatically.</p>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">02 / Configure</div>
+        <h3>Set env vars</h3>
+        <p>Add secrets through our dashboard or CLI. Encrypted at rest, injected at build time.</p>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">03 / Deploy</div>
+        <h3>Push and watch</h3>
+        <p>Every git push triggers a build. Watch logs stream live as your app goes global.</p>
+      </div>
+      <div class="step reveal">
+        <div class="step-num">04 / Monitor</div>
+        <h3>Stay in control</h3>
+        <p>Alerts, rollbacks, and analytics at your fingertips. One-click revert if something breaks.</p>
+      </div>
+    </div>
+  </section>
+
+  
+  <section id="stack">
+    <p class="section-label reveal">Compatible with your tools</p>
+    <h2 class="reveal">Integrates with the<br/>stack you already use.</h2>
+    <p class="section-sub reveal">DevStack works with every major language, framework, and service. No rewrites, no migrations.</p>
+
+    <div class="stack-pills reveal">
+      <span class="pill">React</span>
+      <span class="pill">Next.js</span>
+      <span class="pill">Node.js</span>
+      <span class="pill">Python</span>
+      <span class="pill">FastAPI</span>
+      <span class="pill">PostgreSQL</span>
+      <span class="pill">Redis</span>
+      <span class="pill">Docker</span>
+      <span class="pill">Kubernetes</span>
+      <span class="pill">GitHub Actions</span>
+      <span class="pill">Terraform</span>
+      <span class="pill">GraphQL</span>
+      <span class="pill">TypeScript</span>
+      <span class="pill">Rust</span>
+      <span class="pill">Go</span>
+    </div>
+  </section>
+
+  
+  <div class="cta-band reveal" id="contact">
+    <h2>Ready to ship faster?</h2>
+    <p>Join 40,000+ developers who've moved their workflow to DevStack.</p>
+    <a href="#home" class="btn-primary">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      Start building free
+    </a>
+  </div>
+
+  
+  <footer>
+    <p>// DevStack — built with HTML, CSS, JS</p>
+    <div class="foot-links">
+      <a href="#features">Features</a>
+      <a href="#how">Docs</a>
+      <a href="#stack">Stack</a>
+      <a href="#contact">Contact</a>
+    </div>
+  </footer>
+
+  <script>
+    
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      navbar.classList.toggle('scrolled', window.scrollY > 30);
+    }, { passive: true });
+
+    
+    const hamburger = document.getElementById('hamburger');
+    const mobileNav = document.getElementById('mobileNav');
+
+    hamburger.addEventListener('click', () => {
+      const isOpen = mobileNav.classList.toggle('open');
+      hamburger.classList.toggle('open', isOpen);
+    });
+
+    document.querySelectorAll('.mob-link').forEach(link => {
+      link.addEventListener('click', () => {
+        mobileNav.classList.remove('open');
+        hamburger.classList.remove('open');
+      });
+    });
+
+    
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => {
+            entry.target.classList.add('visible');
+          }, (entry.target.dataset.delay || 0) * 1);
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+
+    document.querySelectorAll('.reveal').forEach((el, i) => {
+      el.dataset.delay = (i % 4) * 80;
+      el.style.transitionDelay = `${(i % 4) * 0.08}s`;
+      revealObserver.observe(el);
+    });
+
+    
+    const sections = document.querySelectorAll('section[id], .cta-band[id]');
+    const navLinks = document.querySelectorAll('.nav-links a');
+
+    const sectionObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          navLinks.forEach(link => {
+            link.style.color = '';
+            if (link.getAttribute('href') === '#' + entry.target.id) {
+              link.style.color = 'var(--text)';
+            }
+          });
+        }
+      });
+    }, { threshold: 0.4 });
+
+    sections.forEach(s => sectionObserver.observe(s));
+  </script>
+</body>
+</html>
